@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block class %}class="sub_page"{% endblock class %}
+{% block table_status %}active{% endblock table_status %}
+{% block main %}
+
+<!-- book section -->
+<section class="book_section layout_padding">
+  <div class="container">
+    <div class="heading_container">
+      <h2>
+        Book A Table
+      </h2>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="form_container">
+          <!-- Display messages here -->
+          {% if messages %}
+          <div class="alert alert-info">
+            {% for message in messages %}
+              <p>{{ message }}</p>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <form action="{% url 'Book_Table' %}" method='POST'>{% csrf_token %}
+            <div>
+              <input type="text" class="form-control" name="user_name" required placeholder="Your Name" />
+            </div>
+            <div>
+              <input type="text" class="form-control" name="phone_number" required placeholder="Phone Number" />
+            </div>
+            <div>
+              <input type="email" class="form-control" name="user_email" placeholder="Your Email" />
+            </div>
+            <div>
+              <select class="form-control nice-select wide" required name="total_person">
+                <option value="" disabled selected>
+                  How many persons?
+                </option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </div>
+            <div>
+              <input type="date" required name="booking_data" class="form-control">
+            </div>
+            <div class="btn_box">
+              <button>
+                Book Now
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Google Map section -->
+      <div class="col-md-6">
+    <div class="map_container">
+        <iframe 
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241317.116101108!2d72.74109815!3d19.0821978!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7953d3639a59f%3A0xdeb6edceee18bdcd!2sIndia!5e0!3m2!1sen!2sin!4v1704277345780!5m2!1sen!2sin"
+            width="100%" height="400" style="border:0;" 
+            allowfullscreen="" loading="lazy">
+        </iframe>
+    </div>
+</div>
+
+    </div>
+  </div>
+</section>
+<!-- end book section -->
+
+<!-- Add the Google Maps API -->
+
+{% endblock main %}
