@@ -31,9 +31,45 @@
   <!-- responsive style -->
   <link href="{% static 'css/responsive.css' %}" rel="stylesheet" />
 
+  <style>
+    .cart-nav-btn { position: relative; padding-right: 1.35rem; }
+    .cart-count-badge {
+      position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px;
+      padding: 0 6px; font-size: 11px; font-weight: 700; line-height: 20px;
+      text-align: center; border-radius: 10px; background: #ffbe33; color: #000;
+      display: none;
+    }
+    .cart-count-badge.visible { display: inline-block; }
+    .cart-modal-body { max-height: 55vh; overflow-y: auto; padding-top: 0; }
+    .cart-line {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 12px 0; border-bottom: 1px solid #eee;
+    }
+    .cart-line:last-child { border-bottom: none; }
+    .cart-line-info { flex: 1 1 140px; min-width: 0; }
+    .cart-line-name { font-weight: 600; margin: 0 0 4px; font-size: 1rem; }
+    .cart-line-meta { margin: 0; font-size: 0.85rem; color: #666; }
+    .cart-line-total { font-weight: 700; color: #222; min-width: 72px; text-align: right; }
+    .cart-qty-group { display: inline-flex; align-items: center; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .cart-qty-group button {
+      border: none; background: #f8f8f8; width: 34px; height: 34px; cursor: pointer; font-size: 1.1rem; line-height: 1;
+    }
+    .cart-qty-group button:hover { background: #eee; }
+    .cart-qty-group .qty-val { min-width: 28px; text-align: center; font-weight: 600; }
+    .cart-remove-btn {
+      border: none; background: transparent; color: #c82333; padding: 6px 10px; cursor: pointer; font-size: 1.1rem;
+    }
+    .cart-remove-btn:hover { color: #a71d2a; }
+    .cart-empty-state { text-align: center; color: #888; padding: 2rem 1rem; }
+    .cart-empty-state i { font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5; }
+    .cart-footer-total { font-size: 1.15rem; }
+    #cart-modal .modal-dialog { max-width: 480px; }
+  </style>
+
 </head>
 
 <body {% block class %}{% endblock class %}>
+  <form class="d-none" aria-hidden="true">{% csrf_token %}</form>
 
   <div class="hero_area">
     <div class="bg-box">
@@ -66,11 +102,16 @@
                 <a class="nav-link" href="{% url "About" %}">About</a>
               </li>
               <li class="nav-item {% block table_status %}{% endblock table_status %}">
-                <a class="nav-link" href="{% url "Book_Table" %}">Book Table</a>
+                <a class="nav-link" href="{% url 'start_table_only' %}">Book Table</a>
               </li>
               <li class="nav-item {% block feedback_status %}{% endblock feedback_status %}">
                 <a class="nav-link" href="{% url "Feedback_Form" %}">Feedback</a>
               </li>
+              {% if user.is_authenticated %}
+              <li class="nav-item {% block orders_status %}{% endblock orders_status %}">
+                <a class="nav-link" href="{% url 'order_history' %}">My orders</a>
+              </li>
+              {% endif %}
             </ul>
             <div class="user_option">
               <div class="user_option">
@@ -79,8 +120,9 @@
                     {{ user.username }}
                   </span>
                   <a href="{% url 'logout' %}" class="btn btn-secondary">Logout</a>
-                  <button id="cart-button" class="btn btn-primary">
+                  <button id="cart-button" type="button" class="btn btn-primary cart-nav-btn">
                     <i class="fa fa-shopping-cart"></i> Cart
+                    <span id="cart-count" class="cart-count-badge" aria-live="polite">0</span>
                   </button>
                 {% else %}
                   <a href="{% url 'login' %}" class="btn order_online">Login</a>
@@ -94,22 +136,34 @@
     <!-- end header section -->
 
     <!-- Cart Popup Modal -->
-    <div id="cart-modal" class="modal fade" tabindex="-1" role="dialog">
-      <div class="modal-dialog" role="document">
+    <div id="cart-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="cartModalTitle">
+      <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Your Cart</h5>
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title mb-0" id="cartModalTitle"><i class="fa fa-shopping-cart"></i> Your cart</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="modal-body">
-            <ul id="cart-items-list">
-              <!-- Cart items will be dynamically loaded here -->
-            </ul>
+          <div class="modal-body cart-modal-body">
+            <div id="cart-empty-state" class="cart-empty-state" style="display: none;">
+              <i class="fa fa-shopping-basket"></i>
+              <p class="mb-0">Your cart is empty.<br><small>Add items from the menu.</small></p>
+            </div>
+            <div id="cart-items-container"></div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <div class="modal-footer flex-column align-items-stretch border-top">
+            <div class="d-flex justify-content-between align-items-center cart-footer-total mb-2">
+              <span>Subtotal</span>
+              <span>₹<span id="cartTotal">0</span></span>
+            </div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+              <button type="button" id="clear-cart-btn" class="btn btn-outline-danger btn-sm">Clear cart</button>
+              <div>
+                <a href="{% url 'Checkout' %}" class="btn btn-success mr-2" id="cart-checkout-link">Checkout</a>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -218,28 +272,144 @@
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCh39n5U-4IoWpsVGUHWdqB6puEkhRLdmI&callback=myMap">
   </script>
   <!-- End Google Map -->
-    <!-- JavaScript for Cart Button -->
+    {% if user.is_authenticated %}
     <script>
-      document.getElementById('cart-button').addEventListener('click', function() {
-        fetch('/get-cart-items/')
-          .then(response => response.json())
-          .then(data => {
-            const cartList = document.getElementById('cart-items-list');
-            cartList.innerHTML = '';
-            if (data.items) {
-              data.items.forEach(item => {
-                cartList.innerHTML += `
-                  <li>${item.name} - ${item.quantity} x $${item.price} = $${item.total}</li>
-                `;
-              });
-            } else {
-              cartList.innerHTML = '<li>Your cart is empty.</li>';
+      (function() {
+        function getCsrfToken() {
+          var m = document.cookie.match(/(^| )csrftoken=([^;]+)/);
+          return m ? m[2] : '';
+        }
+        function postForm(url, body) {
+          return fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRFToken': getCsrfToken()
+            },
+            body: body
+          }).then(function(r) { return r.json(); });
+        }
+        function setBadge(count) {
+          var el = document.getElementById('cart-count');
+          if (!el) return;
+          var n = parseInt(count, 10) || 0;
+          el.textContent = n > 99 ? '99+' : String(n);
+          el.classList.toggle('visible', n > 0);
+        }
+        function setTotals(totalBill) {
+          var t = document.getElementById('cartTotal');
+          if (t) t.textContent = Number(totalBill || 0).toFixed(0);
+        }
+        function renderCartLines(data) {
+          var container = document.getElementById('cart-items-container');
+          var emptyEl = document.getElementById('cart-empty-state');
+          if (!container) return;
+          container.innerHTML = '';
+          var items = data.items || [];
+          if (items.length === 0) {
+            if (emptyEl) emptyEl.style.display = 'block';
+            setTotals(0);
+            return;
+          }
+          if (emptyEl) emptyEl.style.display = 'none';
+          setTotals(data.total_bill);
+          items.forEach(function(item) {
+            var row = document.createElement('div');
+            row.className = 'cart-line';
+            row.setAttribute('data-item-id', item.id);
+            row.innerHTML =
+              '<div class="cart-line-info">' +
+                '<p class="cart-line-name">' + item.name + '</p>' +
+                '<p class="cart-line-meta">₹' + item.price + ' each</p>' +
+              '</div>' +
+              '<div class="cart-qty-group" role="group" aria-label="Quantity">' +
+                '<button type="button" class="cart-qty-dec" data-item-id="' + item.id + '" title="Decrease">−</button>' +
+                '<span class="qty-val">' + item.quantity + '</span>' +
+                '<button type="button" class="cart-qty-inc" data-item-id="' + item.id + '" title="Increase">+</button>' +
+              '</div>' +
+              '<div class="cart-line-total">₹' + item.total + '</div>' +
+              '<button type="button" class="cart-remove-btn" data-item-id="' + item.id + '" title="Remove"><i class="fa fa-trash-o"></i></button>';
+            container.appendChild(row);
+          });
+        }
+        function loadCartIntoModal() {
+          return fetch('/get-cart-items/')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.error) return;
+              renderCartLines(data);
+              if (typeof data.item_count !== 'undefined') setBadge(data.item_count);
+            })
+            .catch(function(e) { console.error(e); });
+        }
+        window.refreshCartBadge = function() {
+          fetch('/get-cart-items/')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.error) return;
+              if (typeof data.item_count !== 'undefined') setBadge(data.item_count);
+              setTotals(data.total_bill);
+            })
+            .catch(function() {});
+        };
+        var cartBtn = document.getElementById('cart-button');
+        if (cartBtn) {
+          cartBtn.addEventListener('click', function() {
+            loadCartIntoModal().then(function() { $('#cart-modal').modal('show'); });
+          });
+        }
+        var cartContainer = document.getElementById('cart-items-container');
+        if (cartContainer) {
+          cartContainer.addEventListener('click', function(ev) {
+            var t = ev.target;
+            var inc = t.closest && t.closest('.cart-qty-inc');
+            var dec = t.closest && t.closest('.cart-qty-dec');
+            var rem = t.closest && t.closest('.cart-remove-btn');
+            var id;
+            if (inc) {
+              id = inc.getAttribute('data-item-id');
+              postForm('/update-cart-quantity/', 'item_id=' + encodeURIComponent(id) + '&action=increment')
+                .then(function(d) {
+                  if (d.error) return;
+                  setBadge(d.item_count);
+                  loadCartIntoModal();
+                });
+            } else if (dec) {
+              id = dec.getAttribute('data-item-id');
+              postForm('/update-cart-quantity/', 'item_id=' + encodeURIComponent(id) + '&action=decrement')
+                .then(function(d) {
+                  if (d.error) return;
+                  setBadge(d.item_count);
+                  loadCartIntoModal();
+                });
+            } else if (rem) {
+              id = rem.getAttribute('data-item-id');
+              postForm('/remove-from-cart/', 'item_id=' + encodeURIComponent(id))
+                .then(function(d) {
+                  if (d.error) return;
+                  setBadge(d.item_count);
+                  loadCartIntoModal();
+                });
             }
-            $('#cart-modal').modal('show');
-          })
-          .catch(error => console.error('Error fetching cart items:', error));
-      });
+          });
+        }
+        var clearBtn = document.getElementById('clear-cart-btn');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function() {
+            if (!confirm('Remove all items from your cart?')) return;
+            postForm('/clear-cart/', '')
+              .then(function(d) {
+                if (d.error) return;
+                setBadge(0);
+                loadCartIntoModal();
+              });
+          });
+        }
+        document.addEventListener('DOMContentLoaded', window.refreshCartBadge);
+      })();
     </script>
+    {% endif %}
+  {% include 'live_chat.html' %}
 </body>
 
 </html>

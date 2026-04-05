@@ -1,0 +1,20 @@
+{% if live_chat_ready %}
+{# Tawk.to — get Property ID & Widget ID from https://dashboard.tawk.to #}
+<script type="text/javascript">
+  var Tawk_API = Tawk_API || {};
+  {% if user.is_authenticated %}
+  Tawk_API.visitor = {
+    name: '{{ user.get_username|escapejs }}',
+    email: '{{ user.email|escapejs }}'
+  };
+  {% endif %}
+  (function () {
+    var s1 = document.createElement('script'), s0 = document.getElementsByTagName('script')[0];
+    s1.async = true;
+    s1.src = 'https://embed.tawk.to/{{ tawk_property_id }}/{{ tawk_widget_id }}';
+    s1.charset = 'UTF-8';
+    s1.setAttribute('crossorigin', '*');
+    s0.parentNode.insertBefore(s1, s0);
+  })();
+</script>
+{% endif %}

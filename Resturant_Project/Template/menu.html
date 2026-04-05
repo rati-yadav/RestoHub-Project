@@ -6,6 +6,14 @@
 
 {% block main %}
 
+  {% if home_delivery_mode %}
+  <div class="container pt-3">
+    <div class="alert alert-success mb-0" style="border-radius: 8px;">
+      <strong>Home delivery mode</strong> — add items to your cart and checkout. Your order is marked for delivery to your address.
+    </div>
+  </div>
+  {% endif %}
+
   <!-- food section -->
 
   <section class="food_section layout_padding-bottom">
@@ -41,7 +49,7 @@
                   </p>
                   <div class="options">
                     <h6>
-                      ${{j.Price}}
+                      ₹{{j.Price}}
                     </h6>
                     <button class="btn btn-success add-to-cart" data-item-id="{{j.id}}" data-item-name="{{j.Item_name}}" data-item-price="{{j.Price}}">
                       Add to Cart
@@ -65,29 +73,61 @@
   <!-- end food section -->
 
   <script>
-    document.querySelectorAll('.add-to-cart').forEach(button => {
+    function getCookie(name) {
+      let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? match[2] : null;
+    }
+
+    function showToast(message, isError) {
+      const existing = document.querySelector('.cart-toast');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.className = 'cart-toast' + (isError ? ' error' : '');
+      toast.innerHTML = '<i class="fa fa-' + (isError ? 'exclamation-circle' : 'check-circle') + '"></i> ' + message;
+      document.body.appendChild(toast);
+      setTimeout(function() {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(function() { toast.remove(); }, 300);
+      }, 2500);
+    }
+
+    document.querySelectorAll('.add-to-cart').forEach(function(button) {
       button.addEventListener('click', function() {
-        const itemId = this.getAttribute('data-item-id');
-        const itemName = this.getAttribute('data-item-name');
-        const itemPrice = this.getAttribute('data-item-price');
-  
+        if (this.disabled) return;
+        var btn = this;
+        var itemId = btn.getAttribute('data-item-id');
+        var itemName = btn.getAttribute('data-item-name');
+        var originalText = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Adding...';
+
         fetch('/add-to-cart/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFTOKEN': '{{ csrf_token }}'
+            'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}'
           },
-          body: `item_id=${itemId}`
+          body: 'item_id=' + encodeURIComponent(itemId)
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
           if (data.message) {
-            alert(data.message);
+            showToast(data.message + ' — ' + itemName, false);
+            if (typeof window.refreshCartBadge === 'function') window.refreshCartBadge();
           } else {
-            alert('Failed to add item to cart.');
+            showToast(data.error || 'Failed to add item to cart.', true);
           }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(function(error) {
+          console.error('Error:', error);
+          showToast('Something went wrong. Please try again.', true);
+        })
+        .finally(function() {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        });
       });
     });
   </script>

@@ -68,3 +68,5 @@ $(".client_owl-carousel").owlCarousel({
         }
     }
 });
+
+// Cart UI is handled server-side in base.html (session cart + refreshCartBadge).

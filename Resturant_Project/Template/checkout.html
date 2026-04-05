@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block class %}class="sub_page"{% endblock class %}
+
+{% block main %}
+
+<section class="food_section layout_padding">
+  <div class="container">
+    <div class="heading_container heading_center">
+      <h2>Checkout</h2>
+      <p class="text-muted">Pay with <strong>cash on delivery</strong> or <strong>online</strong>.</p>
+      {% if is_home_delivery %}
+      <div class="alert alert-info text-left mx-auto" style="max-width: 520px;">
+        <strong>Home delivery</strong> — your order will be prepared for delivery to your address.
+        Make sure your account contact details are up to date.
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-white font-weight-bold">Order summary</div>
+          <div class="card-body p-0">
+            <div class="table-responsive mb-0">
+              <table class="table table-striped mb-0">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Line total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for line in cart_lines %}
+                  <tr>
+                    <td>{{ line.name }}</td>
+                    <td class="text-center">{{ line.quantity }}</td>
+                    <td class="text-right">₹{{ line.price }}</td>
+                    <td class="text-right">₹{{ line.total }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr class="font-weight-bold">
+                    <td colspan="3" class="text-right">Total</td>
+                    <td class="text-right">₹{{ total_bill }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <h5 class="mb-3 text-center">Choose payment method</h5>
+        <div class="row">
+          <!-- Cash on delivery -->
+          <div class="col-md-6 mb-4 mb-md-0">
+            <div class="card h-100 shadow-sm border payment-option-card">
+              <div class="card-body p-4 d-flex flex-column">
+                <div class="d-flex align-items-start mb-3">
+                  <span class="payment-option-icon text-success mr-3"><i class="fa fa-money fa-2x"></i></span>
+                  <div>
+                    <h5 class="mb-1">Cash on delivery</h5>
+                    <p class="text-muted small mb-0">Pay with cash when your order arrives (at the table or at your door).</p>
+                  </div>
+                </div>
+                <form method="post" action="{% url 'place_order_cod' %}" class="mt-auto">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-success btn-block btn-lg">Place order — pay on delivery</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Online payment -->
+          <div class="col-md-6">
+            <div class="card h-100 shadow-sm border payment-option-card payment-option-card--online">
+              <div class="card-body p-4 d-flex flex-column">
+                <div class="d-flex align-items-start mb-2">
+                  <span class="payment-option-icon text-primary mr-3"><i class="fa fa-credit-card fa-2x"></i></span>
+                  <div>
+                    <h5 class="mb-1">Pay online</h5>
+                    {% if razorpay_ready %}
+                    <p class="text-muted small mb-2">Secure checkout via <strong>Razorpay</strong> — UPI, cards, netbanking.</p>
+                    <p class="small text-muted mb-0"><i class="fa fa-lock"></i> Encrypted · Instant confirmation</p>
+                    {% elif fake_online_ready %}
+                    <p class="text-muted small mb-2">Complete checkout as <strong>paid online</strong> in one step — for projects and testing when no payment gateway is connected.</p>
+                    <p class="small text-muted mb-0"><i class="fa fa-graduation-cap"></i> College / presentation use</p>
+                    {% else %}
+                    <p class="text-muted small mb-2">Add Razorpay keys in <code>.env</code> for live checkout, or use <code>DEBUG=True</code> without <code>FAKE_ONLINE_PAYMENT=false</code> for instant online pay without keys.</p>
+                    <p class="small text-muted mb-0"><i class="fa fa-info-circle"></i> See instructions below</p>
+                    {% endif %}
+                  </div>
+                </div>
+
+                {% if razorpay_ready %}
+                <div class="mt-auto pt-3">
+                  <button type="button" id="pay-online-btn" class="btn btn-primary btn-block btn-lg">
+                    Pay ₹{{ total_bill }} online
+                  </button>
+                  <p id="pay-online-error" class="text-danger small mt-2 mb-0" style="display:none;"></p>
+                </div>
+                {% elif fake_online_ready %}
+                <div class="mt-auto pt-3">
+                  <button type="button" id="simulate-pay-btn" class="btn btn-primary btn-block btn-lg">
+                    Pay ₹{{ total_bill }} online
+                  </button>
+                  <p class="small text-muted text-center mt-2 mb-0">No card or UPI needed — one click to confirm payment (project / test).</p>
+                  <p id="simulate-pay-error" class="text-danger small mt-2 mb-0" style="display:none;"></p>
+                </div>
+                {% else %}
+                <div class="alert alert-warning border mt-auto mb-0 text-left">
+                  <p class="small mb-2 font-weight-bold">The “Pay online” button will show here after setup.</p>
+                  {% if not razorpay_sdk_installed %}
+                  <p class="small mb-1">1. Install Razorpay in the <strong>same venv</strong> as <code>runserver</code>:</p>
+                  <pre class="small bg-white p-2 border rounded mb-3">pip install razorpay</pre>
+                  {% endif %}
+                  <p class="small mb-1">{% if razorpay_sdk_installed %}1.{% else %}2.{% endif %} Put your <strong>Test mode</strong> keys in this file (no spaces around <code>=</code>), then <strong>restart</strong> the server:</p>
+                  <pre class="small bg-white p-2 border rounded mb-2" style="word-break: break-all;">{{ razorpay_env_file }}</pre>
+                  <pre class="small bg-white p-2 border rounded">RAZORPAY_KEY_ID=rzp_test_xxxx
+RAZORPAY_KEY_SECRET=your_secret_here</pre>
+                  <p class="small mb-0 mt-2 text-muted">Get keys: <a href="https://dashboard.razorpay.com/app/keys" target="_blank" rel="noopener">Razorpay API Keys</a>. Without keys, <strong>online pay without Razorpay</strong> is on when <code>DEBUG=True</code> — add <code>FAKE_ONLINE_PAYMENT=false</code> to hide it.</p>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-center mt-4">
+          <a href="{% url 'Menu' %}" class="text-muted"><i class="fa fa-arrow-left"></i> Back to menu</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .payment-option-card { border-radius: 12px; transition: box-shadow 0.2s; }
+  .payment-option-card--online { border-color: rgba(255, 190, 51, 0.5) !important; }
+  .payment-option-icon { min-width: 48px; text-align: center; }
+</style>
+
+{% if razorpay_ready %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function() {
+  function getCookie(name) {
+    var m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return m ? m[2] : '';
+  }
+  var csrf = getCookie('csrftoken');
+  var btn = document.getElementById('pay-online-btn');
+  var errEl = document.getElementById('pay-online-error');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    fetch('{% url "razorpay_create_order" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': csrf
+      },
+      body: ''
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
+    .then(function(res) {
+      if (!res.ok) {
+        errEl.textContent = res.d.error || 'Could not start payment.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        return;
+      }
+      var d = res.d;
+      var options = {
+        key: d.key_id,
+        amount: d.amount,
+        currency: d.currency,
+        name: 'RestoHub',
+        description: 'Food order',
+        order_id: d.razorpay_order_id,
+        handler: function(response) {
+          var fd = new URLSearchParams();
+          fd.append('razorpay_order_id', response.razorpay_order_id);
+          fd.append('razorpay_payment_id', response.razorpay_payment_id);
+          fd.append('razorpay_signature', response.razorpay_signature);
+          fetch('{% url "razorpay_verify_payment" %}', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRFToken': csrf
+            },
+            body: fd.toString()
+          })
+          .then(function(r) { return r.json().then(function(j) { return { ok: r.ok, j: j }; }); })
+          .then(function(x) {
+            if (x.ok && x.j.redirect_url) {
+              window.location.href = x.j.redirect_url;
+            } else {
+              errEl.textContent = (x.j && x.j.error) ? x.j.error : 'Payment verification failed.';
+              errEl.style.display = 'block';
+              btn.disabled = false;
+            }
+          })
+          .catch(function() {
+            errEl.textContent = 'Network error. If money was debited, contact support.';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+          });
+        },
+        prefill: d.prefill || {},
+        theme: { color: '#ffbe33' },
+        modal: {
+          ondismiss: function() { btn.disabled = false; }
+        }
+      };
+      var rzp = new Razorpay(options);
+      rzp.on('payment.failed', function() {
+        errEl.textContent = 'Payment failed or was cancelled.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+      });
+      rzp.open();
+    })
+    .catch(function() {
+      errEl.textContent = 'Could not connect. Try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+    });
+  });
+})();
+</script>
+{% endif %}
+
+{% if fake_online_ready %}
+<script>
+(function() {
+  function getCookie(name) {
+    var m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return m ? m[2] : '';
+  }
+  var btn = document.getElementById('simulate-pay-btn');
+  var errEl = document.getElementById('simulate-pay-error');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    fetch('{% url "checkout_simulate_online" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: ''
+    })
+    .then(function(r) { return r.json().then(function(j) { return { ok: r.ok, j: j }; }); })
+    .then(function(x) {
+      if (x.ok && x.j.redirect_url) {
+        window.location.href = x.j.redirect_url;
+      } else {
+        errEl.textContent = (x.j && x.j.error) ? x.j.error : 'Could not complete.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+      }
+    })
+    .catch(function() {
+      errEl.textContent = 'Network error.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+    });
+  });
+})();
+</script>
+{% endif %}
+
+{% endblock main %}

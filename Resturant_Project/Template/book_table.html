@@ -7,19 +7,24 @@
 <!-- book section -->
 <section class="book_section layout_padding">
   <div class="container">
-    <div class="heading_container">
+    <div class="heading_container heading_center">
       <h2>
-        Book A Table
+        Book a table
       </h2>
+      {% if booking_mode == 'preorder' %}
+      <p class="text-muted">After booking, you will be able to pre-order food from the menu.</p>
+      {% else %}
+      <p class="text-muted">Reserve by date, time, and party size. No food pre-order with this option.</p>
+      {% endif %}
     </div>
     <div class="row">
       <div class="col-md-6">
         <div class="form_container">
           <!-- Display messages here -->
           {% if messages %}
-          <div class="alert alert-info">
+          <div class="mb-3">
             {% for message in messages %}
-              <p>{{ message }}</p>
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% else %}info{% endif %} mb-2">{{ message }}</div>
             {% endfor %}
           </div>
           {% endif %}
@@ -29,10 +34,10 @@
               <input type="text" class="form-control" name="user_name" required placeholder="Your Name" />
             </div>
             <div>
-              <input type="text" class="form-control" name="phone_number" required placeholder="Phone Number" />
+              <input type="tel" class="form-control" name="phone_number" required placeholder="Phone (10 digits)" maxlength="15" autocomplete="tel" />
             </div>
             <div>
-              <input type="email" class="form-control" name="user_email" placeholder="Your Email" />
+              <input type="email" class="form-control" name="user_email" required placeholder="Your Email (required for confirmation)" />
             </div>
             <div>
               <select class="form-control nice-select wide" required name="total_person">
@@ -46,10 +51,15 @@
               </select>
             </div>
             <div>
+              <label class="small text-muted d-block mb-1">Date</label>
               <input type="date" required name="booking_data" class="form-control">
             </div>
+            <div>
+              <label class="small text-muted d-block mb-1">Time</label>
+              <input type="time" required name="booking_time" class="form-control">
+            </div>
             <div class="btn_box">
-              <button>
+              <button type="submit">
                 Book Now
               </button>
             </div>

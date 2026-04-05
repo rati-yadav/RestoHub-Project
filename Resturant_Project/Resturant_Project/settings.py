@@ -14,11 +14,12 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from the .env file
-load_dotenv()
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env: project folder (manage.py) first, then repo parent (some setups keep .env one level up)
+load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR.parent / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -74,6 +75,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'Base_App.context_processors.live_chat',
             ],
         },
     },
@@ -143,18 +145,51 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# settings.py
+# Email — use .env (never commit real passwords). Gmail needs an "App password", not your normal login.
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'true').lower() in ('1', 'true', 'yes')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'webmaster@localhost')
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # Use your email provider's SMTP server
-EMAIL_PORT = 587  # Standard port for TLS encryption
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'ratiyadav968@gmail.com'  # Replace with your email address
-EMAIL_HOST_PASSWORD = 'sfphhraiwtofnftz'  # Replace with your email password
-DEFAULT_FROM_EMAIL = 'ratiyadav968@gmail.com'  # The sender's email
+# Local dev: if no SMTP password, print emails in the terminal instead of failing
+if DEBUG and not EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 # Retrieve the Google Maps API key from environment variables
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
+
+# Razorpay — online payments (UPI, cards, netbanking). Get keys from https://dashboard.razorpay.com/
+
+
+def _env_strip(key: str) -> str:
+    v = (os.getenv(key) or '').strip()
+    if len(v) >= 2 and ((v[0] == v[-1] == '"') or (v[0] == v[-1] == "'")):
+        v = v[1:-1].strip()
+    return v
+
+
+RAZORPAY_KEY_ID = _env_strip('RAZORPAY_KEY_ID')
+RAZORPAY_KEY_SECRET = _env_strip('RAZORPAY_KEY_SECRET')
+
+# College / test: online pay without Razorpay when DEBUG and keys are not set.
+# Set FAKE_ONLINE_PAYMENT=false in .env to turn this off and show only Razorpay setup instructions.
+_fake_opt = (os.getenv('FAKE_ONLINE_PAYMENT') or '').strip().lower()
+_has_razorpay_keys = bool(RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)
+if not DEBUG or _has_razorpay_keys:
+    FAKE_ONLINE_PAYMENT = False
+elif _fake_opt in ('0', 'false', 'no', 'off'):
+    FAKE_ONLINE_PAYMENT = False
+else:
+    FAKE_ONLINE_PAYMENT = True
+
+# Live chat (Tawk.to): set both IDs from Admin → Channels → Chat Widget → Direct Chat Link
+TAWK_TO_PROPERTY_ID = _env_strip('TAWK_TO_PROPERTY_ID')
+TAWK_TO_WIDGET_ID = _env_strip('TAWK_TO_WIDGET_ID')
+LIVE_CHAT_READY = bool(TAWK_TO_PROPERTY_ID and TAWK_TO_WIDGET_ID)
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'  # Redirect after successful login

@@ -96,6 +96,47 @@
 
 {% block main %}
 
+  <!-- service choice: table / pre-order / delivery -->
+  <section class="food_section layout_padding-top layout_padding-bottom" style="padding-top: 2.5rem;">
+    <div class="container">
+      <div class="heading_container heading_center">
+        <h2>How would you like to order?</h2>
+        <p class="text-muted">Choose one option to get started</p>
+      </div>
+      <div class="row mt-4">
+        <div class="col-md-4 mb-4 mb-md-0">
+          <div class="card h-100 shadow-sm border-0" style="border-radius: 12px;">
+            <div class="card-body text-center p-4 d-flex flex-column">
+              <div class="mb-3" style="font-size: 2.5rem; color: #ffbe33;"><i class="fa fa-calendar"></i></div>
+              <h4 class="card-title">Online table booking</h4>
+              <p class="card-text text-muted flex-grow-1">Reserve a table by date, time, and number of guests — dining only, no food order.</p>
+              <a href="{% url 'start_table_only' %}" class="btn btn-primary mt-2">Book a table</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-4 mb-md-0">
+          <div class="card h-100 shadow-sm border-0" style="border-radius: 12px; border: 2px solid #ffbe33 !important;">
+            <div class="card-body text-center p-4 d-flex flex-column">
+              <div class="mb-3" style="font-size: 2.5rem; color: #ffbe33;"><i class="fa fa-cutlery"></i></div>
+              <h4 class="card-title">Table + pre-order food</h4>
+              <p class="card-text text-muted flex-grow-1">Book your table, then browse the menu and pre-order food for your visit.</p>
+              <a href="{% url 'start_table_preorder' %}" class="btn btn-primary mt-2">Start</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0" style="border-radius: 12px;">
+            <div class="card-body text-center p-4 d-flex flex-column">
+              <div class="mb-3" style="font-size: 2.5rem; color: #ffbe33;"><i class="fa fa-motorcycle"></i></div>
+              <h4 class="card-title">Home delivery</h4>
+              <p class="card-text text-muted flex-grow-1">Order from the menu and we will deliver to your home. Log in required.</p>
+              <a href="{% url 'start_home_delivery' %}" class="btn btn-outline-primary mt-2">Order for delivery</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- offer section -->
 
@@ -408,29 +449,31 @@
   <!-- end client section -->
 
   <script>
-    document.querySelectorAll('.add-to-cart').forEach(button => {
+    function getCookie(name) {
+      var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? match[2] : null;
+    }
+    document.querySelectorAll('.add-to-cart').forEach(function(button) {
       button.addEventListener('click', function() {
-        const itemId = this.getAttribute('data-item-id');
-        const itemName = this.getAttribute('data-item-name');
-        const itemPrice = this.getAttribute('data-item-price');
-  
+        var itemId = this.getAttribute('data-item-id');
         fetch('/add-to-cart/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFTOKEN': '{{ csrf_token }}'
+            'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}'
           },
-          body: `item_id=${itemId}`
+          body: 'item_id=' + encodeURIComponent(itemId)
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
           if (data.message) {
+            if (typeof window.refreshCartBadge === 'function') window.refreshCartBadge();
             alert(data.message);
           } else {
-            alert('Failed to add item to cart.');
+            alert(data.error || 'Failed to add item to cart.');
           }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(function(error) { console.error('Error:', error); });
       });
     });
   </script>

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block class %}class="sub_page"{% endblock class %}
+{% block orders_status %}active{% endblock orders_status %}
+
+{% block main %}
+
+<section class="food_section layout_padding">
+  <div class="container">
+    <div class="heading_container heading_center">
+      <h2>Order #{{ order.id }}</h2>
+      <p class="text-muted mb-0">Live status · updates every few seconds</p>
+    </div>
+
+    <div class="row justify-content-center mt-4">
+      <div class="col-lg-8">
+        <div class="card shadow border-0 mb-4 track-status-card">
+          <div class="card-body text-center py-4">
+            <p class="track-status-title mb-2" id="track-status-title">{{ status_title }}</p>
+            <p class="text-muted mb-0 small" id="track-status-detail">{{ status_detail }}</p>
+            <p class="mb-0 mt-3" id="track-table-wrap" {% if not order.table_number %}style="display:none"{% endif %}>
+              <span class="badge badge-dark badge-lg px-3 py-2" id="track-table-badge">
+                Table no. <span id="track-table-val">{{ order.table_number }}</span>
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <h5 class="mb-3">Order timeline</h5>
+        <ul class="track-timeline list-unstyled" id="track-timeline">
+          {% for step in timeline %}
+          <li class="track-step track-step--{{ step.state }}" data-step-index="{{ forloop.counter0 }}">
+            <div class="track-step-icon"><i class="fa {{ step.icon }}"></i></div>
+            <div class="track-step-body">
+              <strong>{{ step.title }}</strong>
+              <div class="text-muted small">{{ step.detail }}</div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+
+        <div class="card mt-4">
+          <div class="card-header bg-white font-weight-bold">Items</div>
+          <ul class="list-group list-group-flush">
+            {% for line in order.lines.all %}
+            <li class="list-group-item d-flex justify-content-between">
+              <span>{{ line.item_name }} × {{ line.quantity }}</span>
+              <span>₹{{ line.line_total }}</span>
+            </li>
+            {% endfor %}
+            <li class="list-group-item d-flex justify-content-between font-weight-bold">
+              <span>Total</span>
+              <span>₹{{ order.total_amount }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <p class="text-center mt-4">
+          <a href="{% url 'order_history' %}" class="text-muted"><i class="fa fa-arrow-left"></i> All orders</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .track-status-card { border-radius: 12px; background: linear-gradient(135deg, #fff9f0 0%, #fff 100%); }
+  .track-status-title { font-size: 1.25rem; font-weight: 600; color: #222; }
+  .track-timeline { position: relative; padding-left: 0; }
+  .track-step {
+    display: flex; gap: 16px; padding: 16px 0 16px 8px;
+    border-left: 3px solid #e0e0e0; margin-left: 22px; position: relative;
+  }
+  .track-step:last-child { border-left-color: transparent; }
+  .track-step-icon {
+    position: absolute; left: -14px; width: 28px; height: 28px; border-radius: 50%;
+    background: #e0e0e0; color: #888; display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .track-step--done { border-left-color: #28a745; }
+  .track-step--done .track-step-icon { background: #28a745; color: #fff; }
+  .track-step--current { border-left-color: #ffbe33; }
+  .track-step--current .track-step-icon {
+    background: #ffbe33; color: #000; box-shadow: 0 0 0 4px rgba(255,190,51,0.35);
+    animation: pulse-dot 1.5s ease infinite;
+  }
+  .track-step--current .track-step-body strong { color: #c45a00; }
+  .track-step--pending { opacity: 0.55; }
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  .track-step-body { margin-left: 24px; }
+</style>
+
+<script>
+(function() {
+  var pollUrl = '{% url "order_track_poll" order.pk %}';
+  var pollMs = 3000;
+  var pollTimer = null;
+  var inFlight = false;
+
+  function applyStepIndex(cur) {
+    cur = parseInt(cur, 10);
+    if (isNaN(cur) || cur < 0) cur = 0;
+    var steps = document.querySelectorAll('#track-timeline .track-step');
+    steps.forEach(function(el, i) {
+      el.classList.remove('track-step--done', 'track-step--current', 'track-step--pending');
+      if (i < cur) el.classList.add('track-step--done');
+      else if (i === cur) el.classList.add('track-step--current');
+      else el.classList.add('track-step--pending');
+    });
+  }
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function tick() {
+    if (inFlight) return;
+    inFlight = true;
+    var sep = pollUrl.indexOf('?') >= 0 ? '&' : '?';
+    var url = pollUrl + sep + '_=' + Date.now();
+    fetch(url, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function(r) {
+        if (!r.ok) throw new Error('poll ' + r.status);
+        return r.json();
+      })
+      .then(function(d) {
+        var t = document.getElementById('track-status-title');
+        var det = document.getElementById('track-status-detail');
+        if (t && d.status_title != null) t.textContent = d.status_title;
+        if (det && d.status_detail != null) det.textContent = d.status_detail;
+        applyStepIndex(d.step_index);
+        var wrap = document.getElementById('track-table-wrap');
+        var val = document.getElementById('track-table-val');
+        if (d.table_number) {
+          if (wrap) wrap.style.display = 'block';
+          if (val) val.textContent = d.table_number;
+        } else {
+          if (wrap) wrap.style.display = 'none';
+        }
+        if (d.is_done) stopPolling();
+      })
+      .catch(function() { /* next interval will retry */ })
+      .then(function() { inFlight = false; });
+  }
+
+  tick();
+  pollTimer = setInterval(tick, pollMs);
+})();
+</script>
+
+{% endblock main %}

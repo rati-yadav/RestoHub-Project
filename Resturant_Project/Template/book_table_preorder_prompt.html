@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block class %}class="sub_page"{% endblock class %}
+{% block table_status %}active{% endblock table_status %}
+
+{% block main %}
+
+<section class="book_section layout_padding">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8 col-md-10">
+        <div class="card shadow border-0" style="border-radius: 12px; overflow: hidden;">
+          <div class="card-body p-4 p-md-5 text-center">
+            <div class="mb-3" style="font-size: 3rem; color: #28a745;">
+              <i class="fa fa-check-circle"></i>
+            </div>
+            <h2 class="mb-2" style="font-weight: 700;">Your table is booked</h2>
+            <p class="text-muted mb-4">
+              Thank you, <strong>{{ guest_name }}</strong>. We have received your reservation for
+              <strong>{{ total_person }}</strong> guest(s) on <strong>{{ booking_date }}</strong>
+              {% if booking_time_display %} at <strong>{{ booking_time_display }}</strong>{% endif %}.
+            </p>
+
+            {% if messages %}
+            <div class="text-left mb-4">
+              {% for message in messages %}
+              <div class="alert alert-{% if message.tags == 'warning' %}warning{% else %}info{% endif %} mb-2">{{ message }}</div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if email_sent %}
+            <p class="small text-muted mb-4">A confirmation email has been sent to your inbox.</p>
+            {% endif %}
+
+            <hr class="my-4">
+
+            <p class="lead mb-4" style="font-size: 1.15rem;">
+              <strong>Would you like to pre-order food</strong> for your visit?<br>
+              <span class="text-muted" style="font-size: 0.95rem;">You can add items now and save time when you arrive.</span>
+            </p>
+
+            <div class="d-flex flex-column flex-sm-row justify-content-center align-items-stretch align-items-sm-center mt-2">
+              <a href="{% url 'Menu' %}" class="btn btn-primary btn-lg px-4 mb-2 mb-sm-0 mr-sm-2" style="min-width: 200px;">
+                <i class="fa fa-cutlery"></i> Yes — browse menu
+              </a>
+              <a href="{% url 'book_table_skip_preorder' %}" class="btn btn-outline-secondary btn-lg px-4" style="min-width: 200px;">
+                No — table only
+              </a>
+            </div>
+
+            <p class="small text-muted mt-4 mb-0">
+              You can always open the menu later from the navigation bar.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock main %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block class %}class="sub_page"{% endblock class %}
+{% block orders_status %}active{% endblock orders_status %}
+
+{% block main %}
+
+<section class="food_section layout_padding">
+  <div class="container">
+    <div class="heading_container heading_center">
+      <h2>My orders</h2>
+      <p class="text-muted">Past orders and live tracking</p>
+    </div>
+
+    {% if orders %}
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        {% for o in orders %}
+        <div class="card shadow-sm mb-3 order-history-card">
+          <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+              <h5 class="mb-1">Order #{{ o.id }}</h5>
+              <p class="text-muted small mb-0">
+                {{ o.created_at|date:"d M Y, H:i" }} ·
+                {% if o.payment_method == 'razorpay' %}Paid online{% else %}Cash on delivery{% endif %}
+                · ₹{{ o.total_amount }}
+              </p>
+              <p class="mb-0 mt-2">
+                <span class="badge badge-info">{{ o.get_tracking_status_display }}</span>
+                {% if o.fulfillment_type == 'delivery' %}
+                <span class="badge badge-success ml-1">Home delivery</span>
+                {% endif %}
+                {% if o.table_number %}
+                <span class="badge badge-secondary ml-1">Table {{ o.table_number }}</span>
+                {% endif %}
+              </p>
+            </div>
+            <div>
+              <a href="{% url 'order_track' o.pk %}" class="btn btn-primary">
+                <i class="fa fa-map-marker"></i> Track order
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <p class="text-center text-muted py-5">You have no orders yet. <a href="{% url 'Menu' %}">Browse the menu</a> to get started.</p>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+  .order-history-card { border-radius: 10px; border: 1px solid #eee; }
+</style>
+
+{% endblock main %}
