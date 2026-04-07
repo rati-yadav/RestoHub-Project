@@ -73,30 +73,20 @@ python manage.py migrate
 7️⃣ Start the server
 python manage.py runserver
 
-
 Now open:
 👉 http://127.0.0.1:8000/
 
-Output:
-
-AboutPage : https://raw.githubusercontent.com/rati-yadav/RestoHub-Project/852863959f2600400e4e0f66d98b1f6f48f2aeeb/aboutpage.png
-MenuPage : https://github.com/rati-yadav/RestoHub-Project/blob/main/menupage.png?raw=true
-BookingPage : https://github.com/rati-yadav/RestoHub-Project/blob/main/bookingpage.png?raw=true
-FeedbackPage : https://github.com/rati-yadav/RestoHub-Project/blob/main/feedbackpage.png?raw=true
-
-
-✨ Future Improvements
+✨ New Improvements
 
 Online payment integration
 User authentication
 Order tracking in real-time
 Admin analytics panel
 
-
 👩‍💻 Author
 Rati Yadav
 GitHub: https://github.com/rati-yadav
-LinkedIn: https://www.linkedin.com/in/rati-yadav-745536272/
+LinkedIn: https://www.linkedin.com/in/rati-yadav-995b923aa/
 
 
 📜 License
