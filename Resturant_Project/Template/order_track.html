@@ -17,8 +17,30 @@
       <div class="col-lg-8">
         <div class="card shadow border-0 mb-4 track-status-card">
           <div class="card-body text-center py-4">
-            <p class="track-status-title mb-2" id="track-status-title">{{ status_title }}</p>
-            <p class="text-muted mb-0 small" id="track-status-detail">{{ status_detail }}</p>
+            <p class="track-status-title mb-2" id="track-status-title">{{ tracking.status_title }}</p>
+            <p class="text-muted mb-0 small" id="track-status-detail">{{ tracking.status_detail }}</p>
+            <div class="track-meta-wrap mt-3">
+              <span class="badge badge-light border mr-1">
+                <i class="fa fa-clock-o"></i> ETA <span id="track-eta-time">{{ tracking.eta_time_display }}</span>
+              </span>
+              <span class="badge badge-light border mr-1">
+                <i class="fa fa-refresh"></i> Updated <span id="track-updated-at">{{ tracking.updated_at }}</span>
+              </span>
+              <span class="badge badge-light border">
+                <i class="fa fa-bolt"></i> <span id="track-next-action">{{ tracking.next_action }}</span>
+              </span>
+            </div>
+            <div class="progress track-progress mt-3">
+              <div
+                class="progress-bar bg-warning"
+                role="progressbar"
+                id="track-progress-bar"
+                style="width: {{ tracking.progress_percent }}%;"
+                aria-valuenow="{{ tracking.progress_percent }}"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >{{ tracking.progress_percent }}%</div>
+            </div>
             <p class="mb-0 mt-3" id="track-table-wrap" {% if not order.table_number %}style="display:none"{% endif %}>
               <span class="badge badge-dark badge-lg px-3 py-2" id="track-table-badge">
                 Table no. <span id="track-table-val">{{ order.table_number }}</span>
@@ -26,19 +48,6 @@
             </p>
           </div>
         </div>
-
-        <h5 class="mb-3">Order timeline</h5>
-        <ul class="track-timeline list-unstyled" id="track-timeline">
-          {% for step in timeline %}
-          <li class="track-step track-step--{{ step.state }}" data-step-index="{{ forloop.counter0 }}">
-            <div class="track-step-icon"><i class="fa {{ step.icon }}"></i></div>
-            <div class="track-step-body">
-              <strong>{{ step.title }}</strong>
-              <div class="text-muted small">{{ step.detail }}</div>
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
 
         <div class="card mt-4">
           <div class="card-header bg-white font-weight-bold">Items</div>
@@ -67,31 +76,9 @@
 <style>
   .track-status-card { border-radius: 12px; background: linear-gradient(135deg, #fff9f0 0%, #fff 100%); }
   .track-status-title { font-size: 1.25rem; font-weight: 600; color: #222; }
-  .track-timeline { position: relative; padding-left: 0; }
-  .track-step {
-    display: flex; gap: 16px; padding: 16px 0 16px 8px;
-    border-left: 3px solid #e0e0e0; margin-left: 22px; position: relative;
-  }
-  .track-step:last-child { border-left-color: transparent; }
-  .track-step-icon {
-    position: absolute; left: -14px; width: 28px; height: 28px; border-radius: 50%;
-    background: #e0e0e0; color: #888; display: flex; align-items: center; justify-content: center;
-    font-size: 12px;
-  }
-  .track-step--done { border-left-color: #28a745; }
-  .track-step--done .track-step-icon { background: #28a745; color: #fff; }
-  .track-step--current { border-left-color: #ffbe33; }
-  .track-step--current .track-step-icon {
-    background: #ffbe33; color: #000; box-shadow: 0 0 0 4px rgba(255,190,51,0.35);
-    animation: pulse-dot 1.5s ease infinite;
-  }
-  .track-step--current .track-step-body strong { color: #c45a00; }
-  .track-step--pending { opacity: 0.55; }
-  @keyframes pulse-dot {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-  }
-  .track-step-body { margin-left: 24px; }
+  .track-meta-wrap { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .track-progress { height: 22px; border-radius: 12px; overflow: hidden; background: #f1f1f1; }
+  .track-progress .progress-bar { font-size: 12px; font-weight: 600; color: #222; }
 </style>
 
 <script>
@@ -100,18 +87,6 @@
   var pollMs = 3000;
   var pollTimer = null;
   var inFlight = false;
-
-  function applyStepIndex(cur) {
-    cur = parseInt(cur, 10);
-    if (isNaN(cur) || cur < 0) cur = 0;
-    var steps = document.querySelectorAll('#track-timeline .track-step');
-    steps.forEach(function(el, i) {
-      el.classList.remove('track-step--done', 'track-step--current', 'track-step--pending');
-      if (i < cur) el.classList.add('track-step--done');
-      else if (i === cur) el.classList.add('track-step--current');
-      else el.classList.add('track-step--pending');
-    });
-  }
 
   function stopPolling() {
     if (pollTimer) {
@@ -139,7 +114,18 @@
         var det = document.getElementById('track-status-detail');
         if (t && d.status_title != null) t.textContent = d.status_title;
         if (det && d.status_detail != null) det.textContent = d.status_detail;
-        applyStepIndex(d.step_index);
+        var eta = document.getElementById('track-eta-time');
+        if (eta && d.eta_time_display != null) eta.textContent = d.eta_time_display;
+        var updated = document.getElementById('track-updated-at');
+        if (updated && d.updated_at != null) updated.textContent = d.updated_at;
+        var nextAction = document.getElementById('track-next-action');
+        if (nextAction && d.next_action != null) nextAction.textContent = d.next_action;
+        var progressBar = document.getElementById('track-progress-bar');
+        if (progressBar && d.progress_percent != null) {
+          progressBar.style.width = d.progress_percent + '%';
+          progressBar.setAttribute('aria-valuenow', d.progress_percent);
+          progressBar.textContent = d.progress_percent + '%';
+        }
         var wrap = document.getElementById('track-table-wrap');
         var val = document.getElementById('track-table-val');
         if (d.table_number) {

@@ -14,6 +14,8 @@ from django.contrib.auth import logout
 from django.urls import reverse_lazy, reverse
 from urllib.parse import urlencode
 from django.utils.dateparse import parse_date, parse_time
+from django.utils import timezone
+from datetime import timedelta
 import time
 
 try:
@@ -368,42 +370,63 @@ def razorpay_verify_payment(request):
     return JsonResponse({'redirect_url': reverse('order_track', kwargs={'pk': order.pk})})
 
 
-ORDER_TRACK_STEPS = [
-    {'code': Order.TRACKING_RECEIVED, 'title': 'Received', 'detail': 'Order received', 'icon': 'fa-check-circle'},
-    {'code': Order.TRACKING_QUEUE, 'title': 'In queue', 'detail': 'Waiting for kitchen', 'icon': 'fa-list-ol'},
-    {'code': Order.TRACKING_PREPARING, 'title': 'Preparing', 'detail': 'In the kitchen', 'icon': 'fa-fire'},
-    {'code': Order.TRACKING_READY, 'title': 'Ready', 'detail': 'Food is ready', 'icon': 'fa-cutlery'},
-    {'code': Order.TRACKING_SERVING, 'title': 'Serving', 'detail': 'Coming to your table', 'icon': 'fa-male'},
-    {'code': Order.TRACKING_DELIVERED, 'title': 'Done', 'detail': 'Delivered', 'icon': 'fa-smile-o'},
-]
+ETA_BY_STEP_MINUTES = {
+    Order.TRACKING_RECEIVED: 35,
+    Order.TRACKING_QUEUE: 28,
+    Order.TRACKING_PREPARING: 18,
+    Order.TRACKING_READY: 10,
+    Order.TRACKING_SERVING: 4,
+    Order.TRACKING_DELIVERED: 0,
+}
 
-ORDER_TRACK_STEPS_DELIVERY = [
-    {'code': Order.TRACKING_RECEIVED, 'title': 'Received', 'detail': 'Order received', 'icon': 'fa-check-circle'},
-    {'code': Order.TRACKING_QUEUE, 'title': 'In queue', 'detail': 'Waiting for kitchen', 'icon': 'fa-list-ol'},
-    {'code': Order.TRACKING_PREPARING, 'title': 'Preparing', 'detail': 'Being cooked', 'icon': 'fa-fire'},
-    {'code': Order.TRACKING_READY, 'title': 'Packed', 'detail': 'Ready for dispatch', 'icon': 'fa-archive'},
-    {'code': Order.TRACKING_SERVING, 'title': 'On the way', 'detail': 'Driver en route', 'icon': 'fa-motorcycle'},
-    {'code': Order.TRACKING_DELIVERED, 'title': 'Delivered', 'detail': 'Order completed', 'icon': 'fa-smile-o'},
-]
+DELIVERY_ETA_BY_STEP_MINUTES = {
+    Order.TRACKING_RECEIVED: 45,
+    Order.TRACKING_QUEUE: 35,
+    Order.TRACKING_PREPARING: 25,
+    Order.TRACKING_READY: 16,
+    Order.TRACKING_SERVING: 8,
+    Order.TRACKING_DELIVERED: 0,
+}
+
+TRACKING_NEXT_ACTION = {
+    Order.TRACKING_RECEIVED: 'Kitchen team will pick your order shortly.',
+    Order.TRACKING_QUEUE: 'You are in line. We are preparing orders ahead of yours.',
+    Order.TRACKING_PREPARING: 'Chefs are preparing your dishes right now.',
+    Order.TRACKING_READY: 'Food is ready. Staff assignment in progress.',
+    Order.TRACKING_SERVING: 'Final handoff in progress.',
+    Order.TRACKING_DELIVERED: 'Order completed successfully.',
+}
 
 
-def _timeline_for_order(order):
-    cur = order.tracking_step_index()
-    step_defs = (
-        ORDER_TRACK_STEPS_DELIVERY
+def _eta_minutes_for_order(order):
+    table = (
+        DELIVERY_ETA_BY_STEP_MINUTES
         if order.fulfillment_type == Order.FULFILL_DELIVERY
-        else ORDER_TRACK_STEPS
+        else ETA_BY_STEP_MINUTES
     )
-    steps = []
-    for i, row in enumerate(step_defs):
-        if i < cur:
-            state = 'done'
-        elif i == cur:
-            state = 'current'
-        else:
-            state = 'pending'
-        steps.append({**row, 'state': state})
-    return steps
+    return table.get(order.tracking_status, 0)
+
+
+def _tracking_payload(order):
+    step_index = order.tracking_step_index()
+    max_steps = max(len(order._TRACKING_STEP_ORDER) - 1, 1)
+    progress_percent = int((step_index / max_steps) * 100)
+    eta_minutes = _eta_minutes_for_order(order)
+    eta_at = timezone.localtime(timezone.now() + timedelta(minutes=eta_minutes))
+    status_title, status_detail = order.tracking_customer_message()
+    return {
+        'tracking_status': order.tracking_status,
+        'table_number': order.table_number or '',
+        'status_title': status_title,
+        'status_detail': status_detail,
+        'step_index': step_index,
+        'progress_percent': progress_percent,
+        'next_action': TRACKING_NEXT_ACTION.get(order.tracking_status, 'Please stay on this page for updates.'),
+        'eta_minutes': eta_minutes,
+        'eta_time_display': eta_at.strftime('%I:%M %p').lstrip('0') if eta_minutes else 'Completed',
+        'updated_at': timezone.localtime(order.tracking_updated_at).strftime('%d %b, %I:%M %p'),
+        'is_done': order.tracking_status == Order.TRACKING_DELIVERED,
+    }
 
 
 @login_required
@@ -416,12 +439,10 @@ def order_history_view(request):
 @login_required
 def order_track_view(request, pk):
     order = get_object_or_404(Order.objects.prefetch_related('lines'), pk=pk, user=request.user)
-    status_title, status_detail = order.tracking_customer_message()
+    tracking = _tracking_payload(order)
     return render(request, 'order_track.html', {
         'order': order,
-        'timeline': _timeline_for_order(order),
-        'status_title': status_title,
-        'status_detail': status_detail,
+        'tracking': tracking,
     })
 
 
@@ -429,15 +450,7 @@ def order_track_view(request, pk):
 @login_required
 def order_track_poll(request, pk):
     order = get_object_or_404(Order.objects.select_related('user'), pk=pk, user=request.user)
-    status_title, status_detail = order.tracking_customer_message()
-    return JsonResponse({
-        'tracking_status': order.tracking_status,
-        'table_number': order.table_number or '',
-        'status_title': status_title,
-        'status_detail': status_detail,
-        'step_index': order.tracking_step_index(),
-        'is_done': order.tracking_status == Order.TRACKING_DELIVERED,
-    })
+    return JsonResponse(_tracking_payload(order))
 
 
 class LoginView(AuthLoginView):

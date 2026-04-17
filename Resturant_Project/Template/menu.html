@@ -16,7 +16,7 @@
 
   <!-- food section -->
 
-  <section class="food_section layout_padding-bottom">
+  <section id="our-menu" class="food_section layout_padding-top layout_padding-bottom">
     <div class="container">
       <div class="heading_container heading_center">
         <h2>
@@ -27,31 +27,35 @@
       <ul class="filters_menu">
         <li class="active" data-filter="*">All</li>
         {% for i in list %}
-        <li data-filter=".{{i.Category_name}}">{{i.Category_name}}</li>
+        <li data-filter=".cat-{{ i.id }}">{{ i.Category_name }}</li>
         {% endfor %}
       </ul>
 
       <div class="filters-content">
         <div class="row grid">
           {% for j in items %}
-          <div class="col-sm-6 col-lg-4 all {{j.Category}}">
+          <div class="col-sm-6 col-lg-4 all cat-{{ j.Category_id }}">
             <div class="box">
               <div>
-                <div class="img-box">
-                  <img src="/media/{{j.Image}} " alt="{{j.Image}}">
+                <div class="img-box rh-menu-img">
+                  {% if j.Image %}
+                  <img src="{{ j.Image.url }}" alt="{{ j.Item_name }}" loading="lazy" width="480" height="360" onerror="this.onerror=null;this.src='{% static 'images/hero-bg.jpg' %}';">
+                  {% else %}
+                  <img src="{% static 'images/hero-bg.jpg' %}" alt="{{ j.Item_name }}" loading="lazy" width="480" height="360">
+                  {% endif %}
                 </div>
                 <div class="detail-box">
                   <h5>
-                    {{j.Item_name}}
+                    {{ j.Item_name }}
                   </h5>
                   <p>
-                    {{j.description}}
+                    {{ j.description }}
                   </p>
                   <div class="options">
                     <h6>
-                      ₹{{j.Price}}
+                      ₹{{ j.Price }}
                     </h6>
-                    <button class="btn btn-success add-to-cart" data-item-id="{{j.id}}" data-item-name="{{j.Item_name}}" data-item-price="{{j.Price}}">
+                    <button type="button" class="btn btn-success add-to-cart" data-item-id="{{ j.id }}" data-item-name="{{ j.Item_name }}" data-item-price="{{ j.Price }}">
                       Add to Cart
                     </button>
                   </div>
@@ -63,9 +67,7 @@
         </div>
       </div>
       <div class="btn-box">
-        <a href="">
-          View More
-        </a>
+        <a href="{% url 'Home' %}#our-menu">Back to home menu</a>
       </div>
     </div>
   </section>

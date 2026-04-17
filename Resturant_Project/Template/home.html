@@ -97,6 +97,19 @@
 {% block main %}
 
   <!-- service choice: table / pre-order / delivery -->
+  <style>
+    .service-choice-card {
+      border-radius: 14px;
+      border: 3px solid #ffbe33 !important;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+      overflow: hidden;
+    }
+    .service-choice-card:hover {
+      box-shadow: 0 10px 28px rgba(255, 190, 51, 0.35);
+      transform: translateY(-2px);
+    }
+  </style>
   <section class="food_section layout_padding-top layout_padding-bottom" style="padding-top: 2.5rem;">
     <div class="container">
       <div class="heading_container heading_center">
@@ -105,7 +118,7 @@
       </div>
       <div class="row mt-4">
         <div class="col-md-4 mb-4 mb-md-0">
-          <div class="card h-100 shadow-sm border-0" style="border-radius: 12px;">
+          <div class="card h-100 shadow-sm service-choice-card">
             <div class="card-body text-center p-4 d-flex flex-column">
               <div class="mb-3" style="font-size: 2.5rem; color: #ffbe33;"><i class="fa fa-calendar"></i></div>
               <h4 class="card-title">Online table booking</h4>
@@ -115,7 +128,7 @@
           </div>
         </div>
         <div class="col-md-4 mb-4 mb-md-0">
-          <div class="card h-100 shadow-sm border-0" style="border-radius: 12px; border: 2px solid #ffbe33 !important;">
+          <div class="card h-100 shadow-sm service-choice-card">
             <div class="card-body text-center p-4 d-flex flex-column">
               <div class="mb-3" style="font-size: 2.5rem; color: #ffbe33;"><i class="fa fa-cutlery"></i></div>
               <h4 class="card-title">Table + pre-order food</h4>
@@ -125,12 +138,12 @@
           </div>
         </div>
         <div class="col-md-4">
-          <div class="card h-100 shadow-sm border-0" style="border-radius: 12px;">
+          <div class="card h-100 shadow-sm service-choice-card">
             <div class="card-body text-center p-4 d-flex flex-column">
               <div class="mb-3" style="font-size: 2.5rem; color: #ffbe33;"><i class="fa fa-motorcycle"></i></div>
               <h4 class="card-title">Home delivery</h4>
               <p class="card-text text-muted flex-grow-1">Order from the menu and we will deliver to your home. Log in required.</p>
-              <a href="{% url 'start_home_delivery' %}" class="btn btn-outline-primary mt-2">Order for delivery</a>
+              <a href="{% url 'start_home_delivery' %}" class="btn btn-primary mt-2">Order for delivery</a>
             </div>
           </div>
         </div>
@@ -291,7 +304,7 @@
 
   <!-- food section -->
 
-  <section class="food_section layout_padding-bottom">
+  <section id="our-menu" class="food_section layout_padding-bottom">
     <div class="container">
       <div class="heading_container heading_center">
         <h2>
@@ -302,31 +315,35 @@
       <ul class="filters_menu">
         <li class="active" data-filter="*">All</li>
         {% for i in list %}
-        <li data-filter=".{{i.Category_name}}">{{i.Category_name}}</li>
+        <li data-filter=".cat-{{ i.id }}">{{ i.Category_name }}</li>
         {% endfor %}
       </ul>
 
       <div class="filters-content">
         <div class="row grid">
           {% for j in items %}
-          <div class="col-sm-6 col-lg-4 all {{j.Category}}">
+          <div class="col-sm-6 col-lg-4 all cat-{{ j.Category_id }}">
             <div class="box">
               <div>
-                <div class="img-box">
-                  <img src="/media/{{j.Image}} " alt="{{j.Image}}">
+                <div class="img-box rh-menu-img">
+                  {% if j.Image %}
+                  <img src="{{ j.Image.url }}" alt="{{ j.Item_name }}" loading="lazy" width="480" height="360" onerror="this.onerror=null;this.src='{% static 'images/hero-bg.jpg' %}';">
+                  {% else %}
+                  <img src="{% static 'images/hero-bg.jpg' %}" alt="{{ j.Item_name }}" loading="lazy" width="480" height="360">
+                  {% endif %}
                 </div>
                 <div class="detail-box">
                   <h5>
-                    {{j.Item_name}}
+                    {{ j.Item_name }}
                   </h5>
                   <p>
-                    {{j.description}}
+                    {{ j.description }}
                   </p>
                   <div class="options">
                     <h6>
-                      ${{j.Price}}
+                      ₹{{ j.Price }}
                     </h6>
-                    <button class="btn btn-success add-to-cart" data-item-id="{{j.id}}" data-item-name="{{j.Item_name}}" data-item-price="{{j.Price}}">
+                    <button type="button" class="btn btn-success add-to-cart" data-item-id="{{ j.id }}" data-item-name="{{ j.Item_name }}" data-item-price="{{ j.Price }}">
                       Add to Cart
                     </button>
                   </div>
@@ -338,9 +355,7 @@
         </div>
       </div>
       <div class="btn-box">
-        <a href="">
-          View More
-        </a>
+        <a href="{% url 'Menu' %}">View full menu</a>
       </div>
     </div>
   </section>

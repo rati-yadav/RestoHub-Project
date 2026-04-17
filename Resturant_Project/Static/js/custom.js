@@ -22,11 +22,9 @@ $(window).on('load', function () {
 
     var $grid = $(".grid").isotope({
         itemSelector: ".all",
-        percentPosition: false,
-        masonry: {
-            columnWidth: ".all"
-        }
-    })
+        layoutMode: "fitRows",
+        percentPosition: true
+    });
 });
 
 // nice select
