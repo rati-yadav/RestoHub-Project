@@ -29,10 +29,9 @@ load_dotenv(BASE_DIR.parent / '.env')
 SECRET_KEY = 'django-insecure-t_!n%3ph(-bpkd2+z2!zujx+6r_x%&3%allmra#8#x0v*iogzf'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -132,7 +131,7 @@ USE_TZ = True
 # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 STATIC_URL = 'static/'
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR / "static")]
 
 MEDIA_URL = 'media/'

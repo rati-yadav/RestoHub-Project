@@ -1,0 +1,179 @@
+/* RestoHub — menu cards, images, filters, toasts */
+
+/* Menu grid — spacing between isotope items */
+.food_section .grid > [class*="col-"] {
+  margin-bottom: 1.25rem;
+}
+
+.food_section .grid > [class*="col-"] > .box > div {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Food image — full bleed, cover crop (real photos + placeholders) */
+.food_section .box .img-box.rh-menu-img {
+  padding: 0;
+  height: 200px;
+  min-height: 200px;
+  overflow: hidden;
+  display: block;
+  position: relative;
+  /* Avoid solid black gap if image is tiny / loading */
+  background: linear-gradient(145deg, #eceff3 0%, #dfe3ea 100%);
+}
+
+.food_section .box .img-box.rh-menu-img img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.food_section .box:hover .img-box.rh-menu-img img {
+  transform: scale(1.06);
+}
+
+/* Detail area grows so price row sits at bottom */
+.food_section .box .detail-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.35rem 1.35rem;
+}
+
+.food_section .box .detail-box h5 {
+  font-size: 1.05rem;
+  line-height: 1.35;
+  margin-bottom: 0.5rem;
+  min-height: 2.7em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.food_section .box .detail-box p {
+  flex: 1;
+  margin-bottom: 0.75rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #e8e8e8;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 4.1em;
+}
+
+.food_section .box .detail-box h6 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffbe33;
+  letter-spacing: 0.02em;
+}
+
+/* Price row + button aligned */
+.food_section .box .options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem 0.75rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.food_section .box .options .btn {
+  white-space: nowrap;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+}
+
+/* Category filter chips */
+.food_section .filters_menu {
+  gap: 8px 10px;
+  margin: 1.75rem 0 1.25rem;
+}
+
+.food_section .filters_menu li {
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #222831;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.food_section .filters_menu li:not(.active):hover {
+  background: #fff9e6;
+  border-color: #ffbe33;
+}
+
+.food_section .filters_menu li.active {
+  border-color: #222831;
+}
+
+/* Cart toast (menu add-to-cart) */
+.cart-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  max-width: min(360px, calc(100vw - 2rem));
+  padding: 0.85rem 1.1rem;
+  background: #222831;
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.cart-toast i {
+  color: #5cb85c;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.cart-toast.error i {
+  color: #e85d5d;
+}
+
+/* Home — service choice cards text colour on white bootstrap card */
+.service-choice-card .card-title {
+  color: #222831;
+  font-weight: 700;
+}
+
+.service-choice-card .card-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.service-choice-card .btn-primary {
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+@media (max-width: 575px) {
+  .food_section .box .img-box.rh-menu-img {
+    height: 180px;
+    min-height: 180px;
+  }
+
+  .cart-toast {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    max-width: none;
+  }
+}
